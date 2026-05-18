@@ -10,7 +10,7 @@ const Shop = () => {
   const { role, token } = useAuth();
 
   useEffect(() => {
-    fetch('http://localhost:5000/api/products')
+    fetch('/api/products')
       .then(res => res.json())
       .then(data => {
         setProducts(data);
@@ -26,7 +26,7 @@ const Shop = () => {
     if (!window.confirm("Are you sure you want to delete this product?")) return;
     
     try {
-      const response = await fetch(`http://localhost:5000/api/admin/products/${productId}`, {
+      const response = await fetch(`/api/admin/products/${productId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -54,7 +54,7 @@ const Shop = () => {
         {products.map(product => (
           <div key={product.id} className="product-card">
             <div className="product-image-container">
-              <img src={`http://localhost:5000/api${product.image_url}`} alt={product.name} className="product-image" />
+              <img src={`/api${product.image_url}`} alt={product.name} className="product-image" />
             </div>
             <div className="product-info">
               <h3>{product.name}</h3>
