@@ -108,3 +108,26 @@
 .btn-add:hover {
   background-color: #000;
 }
+
+@media (max-width: 768px) {
+  .shop-page {
+    padding: 2rem 1rem;
+  }
+  .shop-title {
+    font-size: 2rem;
+    margin-bottom: 2rem;
+  }
+  .product-grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 1rem;
+  }
+  .product-info {
+    padding: 1rem;
+  }
+  .product-actions {
+    flex-direction: column;
+  }
+  .btn-add {
+    width: 100%;
+  }
+}

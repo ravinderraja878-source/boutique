@@ -94,3 +94,21 @@
   border-bottom: 1px solid var(--primary-color);
   padding-bottom: 5px;
 }
+
+@media (max-width: 768px) {
+  .hero-content h1 {
+    font-size: 2.5rem;
+  }
+  .hero-content p {
+    font-size: 1rem;
+  }
+  .featured {
+    padding: 3rem 1rem;
+  }
+  .featured h2 {
+    font-size: 2rem;
+  }
+  .featured-grid {
+    grid-template-columns: 1fr;
+  }
+}

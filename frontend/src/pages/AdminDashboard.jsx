@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import AdminUploadForm from '../components/AdminUploadForm';
 import { useAuth } from '../context/AuthContext';
 import { Navigate } from 'react-router-dom';
@@ -10,13 +10,7 @@ const AdminDashboard = () => {
   const [orders, setOrders] = useState([]);
   const [loadingOrders, setLoadingOrders] = useState(false);
 
-  useEffect(() => {
-    if (activeTab === 'view_orders' && role === 'admin') {
-      fetchOrders();
-    }
-  }, [activeTab]);
-
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
     setLoadingOrders(true);
     try {
       const response = await fetch('/api/admin/orders', {
@@ -35,7 +29,14 @@ const AdminDashboard = () => {
     } finally {
       setLoadingOrders(false);
     }
-  };
+  }, [token]);
+
+  useEffect(() => {
+    if (activeTab === 'view_orders' && role === 'admin') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      fetchOrders();
+    }
+  }, [activeTab, role, fetchOrders]);
 
   const handleDeleteOrder = async (orderId) => {
     try {

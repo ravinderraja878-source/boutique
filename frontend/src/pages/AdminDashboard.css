@@ -102,3 +102,23 @@
   background: #d4edda;
   color: #155724;
 }
+
+@media (max-width: 768px) {
+  .admin-dashboard {
+    padding: 1rem;
+  }
+  .admin-tabs {
+    flex-wrap: wrap;
+  }
+  .tab-btn {
+    flex: 1 1 45%;
+    padding: 0.8rem 1rem;
+  }
+  .orders-container {
+    padding: 1rem;
+  }
+  .orders-table th, .orders-table td {
+    padding: 0.5rem;
+    font-size: 0.85rem;
+  }
+}

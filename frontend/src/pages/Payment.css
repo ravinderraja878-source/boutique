@@ -167,3 +167,20 @@
   text-align: center;
   padding: 5rem 2rem;
 }
+
+@media (max-width: 768px) {
+  .payment-page {
+    padding: 2rem 1rem;
+  }
+  .payment-container {
+    padding: 1.5rem;
+  }
+  .form-row {
+    flex-direction: column;
+  }
+  .payment-amount {
+    flex-direction: column;
+    gap: 10px;
+    align-items: flex-start;
+  }
+}

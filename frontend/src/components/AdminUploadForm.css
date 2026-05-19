@@ -103,3 +103,10 @@
   border: 1px solid rgba(244, 67, 54, 0.5);
   color: #e57373;
 }
+
+@media (max-width: 768px) {
+  .admin-form-container {
+    padding: 20px;
+    margin: 20px 10px;
+  }
+}

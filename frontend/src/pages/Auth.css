@@ -89,3 +89,12 @@
 .auth-switch a:hover {
   text-decoration: underline;
 }
+
+@media (max-width: 768px) {
+  .auth-box {
+    padding: 2rem 1.5rem;
+  }
+  .auth-box h2 {
+    font-size: 1.5rem;
+  }
+}
