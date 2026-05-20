@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import AdminUploadForm from '../components/AdminUploadForm';
+import AdminVideoUploadForm from '../components/AdminVideoUploadForm';
 import { useAuth } from '../context/AuthContext';
 import { Navigate } from 'react-router-dom';
 import './AdminDashboard.css';
@@ -9,6 +10,8 @@ const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('add_product');
   const [orders, setOrders] = useState([]);
   const [loadingOrders, setLoadingOrders] = useState(false);
+  const [videos, setVideos] = useState([]);
+  const [loadingVideos, setLoadingVideos] = useState(false);
 
   const fetchOrders = useCallback(async () => {
     setLoadingOrders(true);
@@ -31,12 +34,32 @@ const AdminDashboard = () => {
     }
   }, [token]);
 
+  const fetchVideos = useCallback(async () => {
+    setLoadingVideos(true);
+    try {
+      const response = await fetch('/api/videos');
+      if (response.ok) {
+        const data = await response.json();
+        setVideos(data);
+      } else {
+        console.error('Failed to fetch videos');
+      }
+    } catch (error) {
+      console.error('Error fetching videos:', error);
+    } finally {
+      setLoadingVideos(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (activeTab === 'view_orders' && role === 'admin') {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       fetchOrders();
+    } else if (activeTab === 'manage_videos' && role === 'admin') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      fetchVideos();
     }
-  }, [activeTab, role, fetchOrders]);
+  }, [activeTab, role, fetchOrders, fetchVideos]);
 
   const handleDeleteOrder = async (orderId) => {
     try {
@@ -59,6 +82,29 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleDeleteVideo = async (videoId) => {
+    if (!window.confirm("Are you sure you want to delete this video?")) return;
+    
+    try {
+      const response = await fetch(`/api/admin/videos/${videoId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (response.ok) {
+        fetchVideos();
+      } else {
+        const data = await response.json();
+        alert(data.msg || data.error || "Failed to delete video");
+      }
+    } catch (error) {
+      console.error("Error deleting video:", error);
+      alert("An error occurred while deleting the video.");
+    }
+  };
+
   if (role !== 'admin') {
     return <Navigate to="/login" />;
   }
@@ -75,6 +121,18 @@ const AdminDashboard = () => {
           Add Product
         </button>
         <button 
+          className={`tab-btn ${activeTab === 'add_video' ? 'active' : ''}`}
+          onClick={() => setActiveTab('add_video')}
+        >
+          Add Video
+        </button>
+        <button 
+          className={`tab-btn ${activeTab === 'manage_videos' ? 'active' : ''}`}
+          onClick={() => setActiveTab('manage_videos')}
+        >
+          Manage Videos
+        </button>
+        <button 
           className={`tab-btn ${activeTab === 'view_orders' ? 'active' : ''}`}
           onClick={() => setActiveTab('view_orders')}
         >
@@ -84,6 +142,7 @@ const AdminDashboard = () => {
 
       <div className="admin-content">
         {activeTab === 'add_product' && <AdminUploadForm />}
+        {activeTab === 'add_video' && <AdminVideoUploadForm />}
         
         {activeTab === 'view_orders' && (
           <div className="orders-container glass-panel">
@@ -135,6 +194,48 @@ const AdminDashboard = () => {
                           <button 
                             className="btn-delete"
                             onClick={() => handleDeleteOrder(order.id)}
+                            style={{ backgroundColor: '#ff4444', color: 'white', padding: '0.4rem 0.8rem', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.85rem' }}
+                          >
+                            Delete
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === 'manage_videos' && (
+          <div className="orders-container glass-panel">
+            <h2>Manage Uploaded Videos</h2>
+            {loadingVideos ? (
+              <p>Loading videos...</p>
+            ) : videos.length === 0 ? (
+              <p>No videos found.</p>
+            ) : (
+              <div className="table-responsive">
+                <table className="orders-table">
+                  <thead>
+                    <tr>
+                      <th>Video ID</th>
+                      <th>Title</th>
+                      <th>Date Added</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {videos.map(video => (
+                      <tr key={video.id}>
+                        <td>#{video.id}</td>
+                        <td>{video.title}</td>
+                        <td>{new Date(video.created_at).toLocaleDateString()}</td>
+                        <td>
+                          <button 
+                            className="btn-delete"
+                            onClick={() => handleDeleteVideo(video.id)}
                             style={{ backgroundColor: '#ff4444', color: 'white', padding: '0.4rem 0.8rem', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.85rem' }}
                           >
                             Delete

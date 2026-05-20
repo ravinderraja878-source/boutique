@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
+import { motion } from 'framer-motion';
 import './Shop.css';
 
 const Shop = () => {
@@ -48,11 +49,29 @@ const Shop = () => {
   if (loading) return <div className="loader">Loading collections...</div>;
 
   return (
-    <div className="shop-page">
-      <h1 className="shop-title">Our Collection</h1>
+    <motion.div 
+      className="shop-page"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.5 }}
+    >
+      <motion.h1 
+        className="shop-title"
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+      >
+        Our Collection
+      </motion.h1>
       <div className="product-grid">
-        {products.map(product => (
-          <div key={product.id} className="product-card">
+        {products.map((product, index) => (
+          <motion.div 
+            key={product.id} 
+            className="product-card"
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: index * 0.1 }}
+          >
             <div className="product-image-container">
               <img src={`/api${product.image_url}`} alt={product.name} className="product-image" />
             </div>
@@ -88,10 +107,10 @@ const Shop = () => {
                 )}
               </div>
             </div>
-          </div>
+          </motion.div>
         ))}
       </div>
-    </div>
+    </motion.div>
   );
 };
 

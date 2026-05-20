@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify, current_app, send_from_directory
 from werkzeug.utils import secure_filename
 import os
-from models import User, Product, Order, OrderItem
+from models import User, Product, Order, OrderItem, Video
 from extensions import db
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity, get_jwt
 
@@ -200,3 +200,64 @@ def delete_order(order_id):
     db.session.commit()
 
     return jsonify({"message": "Order deleted successfully"}), 200
+
+@api_bp.route('/videos', methods=['GET'])
+def get_videos():
+    videos = Video.query.order_by(Video.created_at.desc()).all()
+    return jsonify([video.to_dict() for video in videos]), 200
+
+@api_bp.route('/admin/videos', methods=['POST'])
+@jwt_required()
+def upload_video():
+    claims = get_jwt()
+    if claims.get('role') != 'admin':
+        return jsonify({"error": "Admin privileges required"}), 403
+
+    if 'video' not in request.files:
+        return jsonify({"error": "No video provided"}), 400
+        
+    video_file = request.files['video']
+    if video_file.filename == '':
+        return jsonify({"error": "Empty filename"}), 400
+        
+    title = request.form.get('title')
+    
+    if not title:
+        return jsonify({"error": "Missing video title"}), 400
+        
+    filename = secure_filename(video_file.filename)
+    upload_path = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
+    os.makedirs(current_app.config['UPLOAD_FOLDER'], exist_ok=True)
+    video_file.save(upload_path)
+    
+    new_video = Video(
+        title=title,
+        video_url=f"/uploads/{filename}"
+    )
+    
+    db.session.add(new_video)
+    db.session.commit()
+    
+    return jsonify({"message": "Video uploaded successfully", "video_id": new_video.id}), 201
+
+@api_bp.route('/admin/videos/<int:video_id>', methods=['DELETE'])
+@jwt_required()
+def delete_video(video_id):
+    claims = get_jwt()
+    if claims.get('role') != 'admin':
+        return jsonify({"error": "Admin privileges required"}), 403
+        
+    video = Video.query.get(video_id)
+    if not video:
+        return jsonify({"error": "Video not found"}), 404
+        
+    if video.video_url:
+        filename = os.path.basename(video.video_url)
+        video_path = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
+        if os.path.exists(video_path):
+            os.remove(video_path)
+            
+    db.session.delete(video)
+    db.session.commit()
+    
+    return jsonify({"message": "Video deleted successfully"}), 200

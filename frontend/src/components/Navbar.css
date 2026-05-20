@@ -17,16 +17,26 @@
 }
 
 .navbar-logo {
+  font-family: 'Playfair Display', 'Didot', 'Bodoni MT', 'Times New Roman', serif;
   font-size: 1.5rem;
   font-weight: 700;
   color: var(--text-color);
   text-decoration: none;
   letter-spacing: 2px;
-  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.logo-img {
+  height: 40px;
+  width: 40px;
+  border-radius: 50%;
+  object-fit: cover;
 }
 
 .navbar-logo span {
-  font-weight: 300;
+  font-weight: 700;
   color: var(--primary-color);
 }
 
