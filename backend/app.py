@@ -28,11 +28,27 @@ def create_app(config_class=Config):
 
     with app.app_context():
         db.create_all()
-        # Create a default admin if none exists
-        if not User.query.filter_by(email='admin@boutique.com').first():
-            admin = User(email='admin@boutique.com', role='admin', is_verified=True)
+        # 1. Migrate old admin from admin@boutique.com to admin@niara.com if it exists
+        old_admin = User.query.filter_by(email='admin@boutique.com').first()
+        if old_admin:
+            old_admin.email = 'admin@niara.com'
+            old_admin.role = 'admin'
+            old_admin.is_verified = True
+            old_admin.set_password('admin123')
+            db.session.commit()
+            
+        # 2. Ensure admin@niara.com exists and has the correct password/role
+        admin = User.query.filter_by(email='admin@niara.com').first()
+        if not admin:
+            admin = User(email='admin@niara.com', role='admin', is_verified=True)
             admin.set_password('admin123')
             db.session.add(admin)
+            db.session.commit()
+        else:
+            # Force update role and password to match requests
+            admin.role = 'admin'
+            admin.is_verified = True
+            admin.set_password('admin123')
             db.session.commit()
 
     return app
