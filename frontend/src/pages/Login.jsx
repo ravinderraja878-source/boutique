@@ -21,16 +21,23 @@ const Login = () => {
         body: JSON.stringify({ email, password })
       });
 
-      const data = await response.json();
+      let data;
+      const responseText = await response.text();
+      try {
+        data = JSON.parse(responseText);
+      } catch {
+        setError(`Server error (Status ${response.status}): ${responseText.substring(0, 80)}...`);
+        return;
+      }
 
       if (response.ok) {
         login(data.access_token, data.role);
         navigate('/');
       } else {
-        setError(data.error || 'Login failed');
+        setError(data.error || `Login failed (Status ${response.status})`);
       }
-    } catch {
-      setError('An error occurred. Please try again.');
+    } catch (err) {
+      setError(`Network error: ${err.message || 'Unable to connect to backend server'}`);
     }
   };
 
