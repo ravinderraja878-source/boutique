@@ -2,8 +2,7 @@ import { useState } from 'react';
 import './AdminVideoUploadForm.css';
 
 export default function AdminVideoUploadForm() {
-  const [formData, setFormData] = useState({ title: '', video: null, video_url: '' });
-  const [uploadMode, setUploadMode] = useState('file'); // 'file' or 'url'
+  const [formData, setFormData] = useState({ title: '', video: null });
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [success, setSuccess] = useState(false);
@@ -22,32 +21,65 @@ export default function AdminVideoUploadForm() {
     setLoading(true);
     setMessage('');
     setSuccess(false);
+
+    if (!formData.video) {
+      setMessage('Error: Please select a video file.');
+      setLoading(false);
+      return;
+    }
     
     try {
       const token = localStorage.getItem('token');
-      let response;
-      
-      if (uploadMode === 'file') {
-        if (!formData.video) {
-          setMessage('Error: Please select a video file.');
-          setLoading(false);
-          return;
-        }
-        const data = new FormData();
-        data.append('title', formData.title);
-        data.append('video', formData.video);
-        
-        response = await fetch('/api/admin/videos', {
+      let videoUrl = null;
+
+      // 1. Try to get Cloudinary signature from backend
+      let signData = { cloudinary_configured: false };
+      try {
+        const signResponse = await fetch('/api/admin/cloudinary-sign', {
           method: 'POST',
-          headers: { 'Authorization': `Bearer ${token}` },
-          body: data
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ folder: 'boutique/videos' })
         });
-      } else {
-        if (!formData.video_url.trim()) {
-          setMessage('Error: Please enter a valid video link/URL.');
-          setLoading(false);
-          return;
+        if (signResponse.ok) {
+          signData = await signResponse.json();
         }
+      } catch (err) {
+        console.warn('Could not contact Cloudinary signature service, using local fallback:', err);
+      }
+
+      if (signData.cloudinary_configured) {
+        setMessage('Uploading video directly to Cloudinary...');
+        const { signature, timestamp, api_key, cloud_name, folder } = signData;
+        
+        const cloudinaryForm = new FormData();
+        cloudinaryForm.append('file', formData.video);
+        cloudinaryForm.append('api_key', api_key);
+        cloudinaryForm.append('timestamp', timestamp);
+        cloudinaryForm.append('signature', signature);
+        cloudinaryForm.append('folder', folder);
+
+        const cloudinaryUrl = `https://api.cloudinary.com/v1_1/${cloud_name}/video/upload`;
+        const uploadResponse = await fetch(cloudinaryUrl, {
+          method: 'POST',
+          body: cloudinaryForm
+        });
+
+        if (!uploadResponse.ok) {
+          const errorResult = await uploadResponse.json().catch(() => ({}));
+          throw new Error(errorResult?.error?.message || `Cloudinary upload failed (Status ${uploadResponse.status})`);
+        }
+
+        const uploadResult = await uploadResponse.json();
+        videoUrl = uploadResult.secure_url;
+      }
+
+      // 2. Submit data to backend
+      let response;
+      if (videoUrl) {
+        setMessage('Saving video details to store...');
         response = await fetch('/api/admin/videos', {
           method: 'POST',
           headers: { 
@@ -56,8 +88,19 @@ export default function AdminVideoUploadForm() {
           },
           body: JSON.stringify({
             title: formData.title,
-            video_url: formData.video_url
+            video_url: videoUrl
           })
+        });
+      } else {
+        setMessage('Uploading video to local server...');
+        const data = new FormData();
+        data.append('title', formData.title);
+        data.append('video', formData.video);
+        
+        response = await fetch('/api/admin/videos', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` },
+          body: data
         });
       }
       
@@ -73,8 +116,8 @@ export default function AdminVideoUploadForm() {
       
       if (response.ok) {
         setSuccess(true);
-        setMessage(uploadMode === 'file' ? '✨ Video uploaded successfully!' : '✨ Video link added successfully!');
-        setFormData({ title: '', video: null, video_url: '' });
+        setMessage('✨ Video uploaded successfully!');
+        setFormData({ title: '', video: null });
         // Reset file input in the form
         const fileInput = e.target.querySelector('input[type="file"]');
         if (fileInput) fileInput.value = '';
@@ -83,7 +126,7 @@ export default function AdminVideoUploadForm() {
       }
     } catch (err) {
       console.error(err);
-      setMessage(`A network error occurred: ${err.message || 'Please try again.'}`);
+      setMessage(`An error occurred: ${err.message || 'Please try again.'}`);
     } finally {
       setLoading(false);
     }
@@ -93,29 +136,6 @@ export default function AdminVideoUploadForm() {
     <div className="admin-form-container glass-panel">
       <h2>Add Store/Saree Video</h2>
       {message && <div className={`message ${success ? 'success' : 'error'}`}>{message}</div>}
-      
-      <div className="upload-mode-toggle">
-        <button 
-          type="button"
-          className={`mode-btn ${uploadMode === 'file' ? 'active' : ''}`}
-          onClick={() => {
-            setUploadMode('file');
-            setMessage('');
-          }}
-        >
-          📁 Upload File
-        </button>
-        <button 
-          type="button"
-          className={`mode-btn ${uploadMode === 'url' ? 'active' : ''}`}
-          onClick={() => {
-            setUploadMode('url');
-            setMessage('');
-          }}
-        >
-          🔗 Video Link
-        </button>
-      </div>
 
       <form onSubmit={handleSubmit} className="admin-form">
         <div className="form-group">
@@ -130,35 +150,20 @@ export default function AdminVideoUploadForm() {
           />
         </div>
         
-        {uploadMode === 'file' ? (
-          <div className="form-group">
-            <label>Video File (MP4, WebM)</label>
-            <input 
-              type="file" 
-              name="video" 
-              accept="video/*" 
-              onChange={handleVideoChange} 
-              required 
-            />
-            <span className="form-help-text">Max file size limit is 500MB. Recommended is under 20MB.</span>
-          </div>
-        ) : (
-          <div className="form-group">
-            <label>Video Link / URL</label>
-            <input 
-              type="url" 
-              name="video_url" 
-              value={formData.video_url}
-              onChange={handleInputChange} 
-              required 
-              placeholder="e.g. https://res.cloudinary.com/demo/video/upload/v12345/saree_vid.mp4" 
-            />
-            <span className="form-help-text">Paste the direct link to a hosted video file (.mp4, .webm). Recommended for Vercel/production deployment.</span>
-          </div>
-        )}
+        <div className="form-group">
+          <label>Video File (MP4, WebM)</label>
+          <input 
+            type="file" 
+            name="video" 
+            accept="video/*" 
+            onChange={handleVideoChange} 
+            required 
+          />
+          <span className="form-help-text">Max file size limit is 500MB. Cloudinary direct upload is supported for large files.</span>
+        </div>
         
         <button type="submit" disabled={loading} className="submit-btn primary-btn glass-button">
-          {loading ? (uploadMode === 'file' ? 'Uploading Video...' : 'Adding Link...') : (uploadMode === 'file' ? 'Upload Video' : 'Add Video Link')}
+          {loading ? 'Processing...' : 'Upload Video'}
         </button>
       </form>
     </div>

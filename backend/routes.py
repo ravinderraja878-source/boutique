@@ -52,41 +52,52 @@ def upload_product():
     if claims.get('role') != 'admin':
         return jsonify({"error": "Admin privileges required"}), 403
 
-    if 'image' not in request.files:
-        return jsonify({"error": "No image provided"}), 400
-        
-    image = request.files['image']
-    if image.filename == '':
-        return jsonify({"error": "Empty filename"}), 400
-        
-    name = request.form.get('name')
-    category = request.form.get('category')
-    price = request.form.get('price')
-    sizes = request.form.get('sizes')
-    description = request.form.get('description')
-    
+    if request.is_json:
+        data = request.get_json() or {}
+        name = data.get('name')
+        category = data.get('category')
+        price = data.get('price')
+        sizes = data.get('sizes')
+        description = data.get('description')
+        image_url = data.get('image_url')
+    else:
+        name = request.form.get('name')
+        category = request.form.get('category')
+        price = request.form.get('price')
+        sizes = request.form.get('sizes')
+        description = request.form.get('description')
+        image_url = request.form.get('image_url')
+
     if not all([name, category, price, sizes]):
         return jsonify({"error": "Missing required fields"}), 400
-        
-    filename = secure_filename(image.filename)
-    if not filename or '.' not in filename:
-        ext = image.filename.split('.')[-1] if '.' in image.filename else 'jpg'
-        import uuid
-        filename = f"image_{uuid.uuid4().hex}.{ext}"
 
-    # If Cloudinary is configured, upload to Cloudinary
-    if current_app.config.get('CLOUDINARY_URL'):
-        try:
-            import cloudinary.uploader
-            upload_result = cloudinary.uploader.upload(image)
-            image_url = upload_result.get('secure_url')
-        except Exception as e:
-            return jsonify({"error": f"Failed to upload image to Cloudinary: {str(e)}"}), 500
-    else:
-        upload_path = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
-        os.makedirs(current_app.config['UPLOAD_FOLDER'], exist_ok=True)
-        image.save(upload_path)
-        image_url = f"/uploads/{filename}"
+    if not image_url:
+        if 'image' not in request.files:
+            return jsonify({"error": "No image file or image URL provided"}), 400
+            
+        image = request.files['image']
+        if image.filename == '':
+            return jsonify({"error": "Empty filename"}), 400
+            
+        filename = secure_filename(image.filename)
+        if not filename or '.' not in filename:
+            ext = image.filename.split('.')[-1] if '.' in image.filename else 'jpg'
+            import uuid
+            filename = f"image_{uuid.uuid4().hex}.{ext}"
+
+        # If Cloudinary is configured, upload to Cloudinary
+        if current_app.config.get('CLOUDINARY_URL'):
+            try:
+                import cloudinary.uploader
+                upload_result = cloudinary.uploader.upload(image)
+                image_url = upload_result.get('secure_url')
+            except Exception as e:
+                return jsonify({"error": f"Failed to upload image to Cloudinary: {str(e)}"}), 500
+        else:
+            upload_path = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
+            os.makedirs(current_app.config['UPLOAD_FOLDER'], exist_ok=True)
+            image.save(upload_path)
+            image_url = f"/uploads/{filename}"
     
     new_product = Product(
         name=name,
@@ -220,6 +231,47 @@ def delete_order(order_id):
 def get_videos():
     videos = Video.query.order_by(Video.created_at.desc()).all()
     return jsonify([video.to_dict() for video in videos]), 200
+
+@api_bp.route('/admin/cloudinary-sign', methods=['POST'])
+@jwt_required()
+def get_cloudinary_signature():
+    claims = get_jwt()
+    if claims.get('role') != 'admin':
+        return jsonify({"error": "Admin privileges required"}), 403
+
+    if not current_app.config.get('CLOUDINARY_URL'):
+        return jsonify({"cloudinary_configured": False}), 200
+
+    import cloudinary
+    import time
+    
+    # Ensure config is parsed
+    config = cloudinary.config()
+    if not config.cloud_name or not config.api_key or not config.api_secret:
+        return jsonify({"cloudinary_configured": False}), 200
+
+    timestamp = int(time.time())
+    
+    data = request.get_json() or {}
+    folder = data.get('folder', 'boutique')
+    
+    # Parameters to sign
+    params_to_sign = {
+        "timestamp": timestamp,
+        "folder": folder
+    }
+    
+    import cloudinary.utils
+    signature = cloudinary.utils.api_sign_request(params_to_sign, config.api_secret)
+    
+    return jsonify({
+        "cloudinary_configured": True,
+        "signature": signature,
+        "timestamp": timestamp,
+        "api_key": config.api_key,
+        "cloud_name": config.cloud_name,
+        "folder": folder
+    }), 200
 
 @api_bp.route('/admin/videos', methods=['POST'])
 @jwt_required()
