@@ -69,6 +69,10 @@ def upload_product():
         return jsonify({"error": "Missing required fields"}), 400
         
     filename = secure_filename(image.filename)
+    if not filename or '.' not in filename:
+        ext = image.filename.split('.')[-1] if '.' in image.filename else 'jpg'
+        import uuid
+        filename = f"image_{uuid.uuid4().hex}.{ext}"
     upload_path = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
     os.makedirs(current_app.config['UPLOAD_FOLDER'], exist_ok=True)
     image.save(upload_path)
@@ -226,6 +230,10 @@ def upload_video():
         return jsonify({"error": "Missing video title"}), 400
         
     filename = secure_filename(video_file.filename)
+    if not filename or '.' not in filename:
+        ext = video_file.filename.split('.')[-1] if '.' in video_file.filename else 'mp4'
+        import uuid
+        filename = f"video_{uuid.uuid4().hex}.{ext}"
     upload_path = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
     os.makedirs(current_app.config['UPLOAD_FOLDER'], exist_ok=True)
     video_file.save(upload_path)

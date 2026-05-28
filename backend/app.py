@@ -26,6 +26,12 @@ def create_app(config_class=Config):
             return {"error": "Not found"}, 404
         return app.send_static_file('index.html')
 
+    @app.errorhandler(413)
+    def request_entity_too_large(e):
+        if request.path.startswith('/api/'):
+            return {"error": "File size exceeds the limit. Maximum allowed size is 500MB."}, 413
+        return "File too large", 413
+
     with app.app_context():
         db.create_all()
         # 1. Migrate old admin from admin@boutique.com to admin@niara.com if it exists

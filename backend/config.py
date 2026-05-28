@@ -22,4 +22,4 @@ class Config:
     if os.environ.get('VERCEL') or os.environ.get('AWS_LAMBDA_FUNCTION_NAME'):
         _upload_folder = '/tmp/uploads'
     UPLOAD_FOLDER = _upload_folder
-    MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16 MB max upload size
+    MAX_CONTENT_LENGTH = 500 * 1024 * 1024  # 500 MB max upload size
