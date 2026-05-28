@@ -239,13 +239,16 @@ def get_cloudinary_signature():
     if claims.get('role') != 'admin':
         return jsonify({"error": "Admin privileges required"}), 403
 
-    if not current_app.config.get('CLOUDINARY_URL'):
+    import os
+    cloudinary_url = current_app.config.get('CLOUDINARY_URL') or os.environ.get('CLOUDINARY_URL')
+    if not cloudinary_url:
         return jsonify({"cloudinary_configured": False}), 200
 
     import cloudinary
     import time
     
     # Ensure config is parsed
+    cloudinary.config(cloudinary_url=cloudinary_url)
     config = cloudinary.config()
     if not config.cloud_name or not config.api_key or not config.api_secret:
         return jsonify({"cloudinary_configured": False}), 200

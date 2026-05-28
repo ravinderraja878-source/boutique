@@ -43,11 +43,19 @@ export default function AdminVideoUploadForm() {
           },
           body: JSON.stringify({ folder: 'boutique/videos' })
         });
+        
         if (signResponse.ok) {
           signData = await signResponse.json();
+        } else {
+          const errText = await signResponse.text();
+          let errJson = {};
+          try { errJson = JSON.parse(errText); } catch {}
+          throw new Error(`Signature service returned status ${signResponse.status}: ${errJson.error || errJson.msg || errText}`);
         }
       } catch (err) {
-        console.warn('Could not contact Cloudinary signature service, using local fallback:', err);
+        console.error('Cloudinary sign fetch error:', err);
+        // Show signature service error to help diagnostic
+        setMessage(`Direct upload initialization status: ${err.message}.`);
       }
 
       if (signData.cloudinary_configured) {
@@ -74,6 +82,13 @@ export default function AdminVideoUploadForm() {
 
         const uploadResult = await uploadResponse.json();
         videoUrl = uploadResult.secure_url;
+      } else {
+        // Cloudinary is not configured or signature fetch failed
+        // Check file size against Vercel's 4.5MB payload limit
+        const fileSizeMB = formData.video.size / (1024 * 1024);
+        if (fileSizeMB > 4.5) {
+          throw new Error(`Video file size is ${fileSizeMB.toFixed(2)} MB. Direct local upload is disabled for files larger than 4.5 MB on serverless platforms. To upload this file, you must configure the CLOUDINARY_URL environment variable in your Vercel deployment and redeploy.`);
+        }
       }
 
       // 2. Submit data to backend
@@ -126,7 +141,7 @@ export default function AdminVideoUploadForm() {
       }
     } catch (err) {
       console.error(err);
-      setMessage(`An error occurred: ${err.message || 'Please try again.'}`);
+      setMessage(`Error: ${err.message || 'Please try again.'}`);
     } finally {
       setLoading(false);
     }
