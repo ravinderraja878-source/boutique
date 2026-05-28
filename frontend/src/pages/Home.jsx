@@ -51,8 +51,11 @@ const Home = () => {
                 viewport={{ once: true, margin: "-50px" }}
                 transition={{ duration: 0.5, delay: index * 0.1 }}
               >
-                <video controls className="store-video">
-                  <source src={video.video_url.startsWith('http') ? video.video_url : `/api${video.video_url}`} type="video/mp4" />
+                <video 
+                  src={video.video_url.startsWith('http') ? video.video_url : `/api${video.video_url}`} 
+                  controls 
+                  className="store-video"
+                >
                   Your browser does not support the video tag.
                 </video>
                 <div className="video-info">

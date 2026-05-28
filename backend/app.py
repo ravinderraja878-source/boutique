@@ -1,4 +1,4 @@
-from flask import Flask, request
+from flask import Flask, request, send_from_directory
 from config import Config
 from extensions import db, jwt, cors
 from routes import api_bp
@@ -15,20 +15,24 @@ def create_app(config_class=Config):
 
     app.register_blueprint(api_bp, url_prefix='/api')
 
+    @app.route('/uploads/<filename>')
+    def serve_upload(filename):
+        return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+
     @app.route('/')
     def index():
         return app.send_static_file('index.html')
 
     @app.errorhandler(404)
     def not_found(e):
-        # Only serve index.html if the request isn't for the API
-        if request.path.startswith('/api/'):
+        # Only serve index.html if the request isn't for the API or uploads
+        if request.path.startswith('/api/') or request.path.startswith('/uploads/'):
             return {"error": "Not found"}, 404
         return app.send_static_file('index.html')
 
     @app.errorhandler(413)
     def request_entity_too_large(e):
-        if request.path.startswith('/api/'):
+        if request.path.startswith('/api/') or request.path.startswith('/uploads/'):
             return {"error": "File size exceeds the limit. Maximum allowed size is 500MB."}, 413
         return "File too large", 413
 

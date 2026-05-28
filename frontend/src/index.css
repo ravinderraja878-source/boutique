@@ -50,3 +50,52 @@ input, textarea, select {
 ::-webkit-scrollbar-thumb:hover {
   background: #555;
 }
+
+/* Premium Skeleton Loading States */
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton-card {
+  pointer-events: none;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+.skeleton-image {
+  background: linear-gradient(90deg, #f3f3f3 25%, #e6e6e6 50%, #f3f3f3 75%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.6s infinite ease-in-out;
+}
+
+.skeleton-line {
+  background: linear-gradient(90deg, #f3f3f3 25%, #e6e6e6 50%, #f3f3f3 75%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.6s infinite ease-in-out;
+  border-radius: 4px;
+  margin-bottom: 0.8rem;
+}
+
+.skeleton-title {
+  height: 1.4rem;
+  width: 75%;
+}
+
+.skeleton-price {
+  height: 1.1rem;
+  width: 45%;
+  margin-bottom: 0.6rem;
+}
+
+.skeleton-text {
+  height: 0.9rem;
+  width: 90%;
+}
+

@@ -79,11 +79,10 @@ def upload_product():
         if image.filename == '':
             return jsonify({"error": "Empty filename"}), 400
             
-        filename = secure_filename(image.filename)
-        if not filename or '.' not in filename:
-            ext = image.filename.split('.')[-1] if '.' in image.filename else 'jpg'
-            import uuid
-            filename = f"image_{uuid.uuid4().hex}.{ext}"
+        ext = image.filename.split('.')[-1] if '.' in image.filename else 'jpg'
+        ext = secure_filename(ext) or 'jpg'
+        import uuid
+        filename = f"image_{uuid.uuid4().hex}.{ext}"
 
         # If Cloudinary is configured, upload to Cloudinary
         if current_app.config.get('CLOUDINARY_URL'):
@@ -302,11 +301,10 @@ def upload_video():
         if video_file.filename == '':
             return jsonify({"error": "Empty filename"}), 400
             
-        filename = secure_filename(video_file.filename)
-        if not filename or '.' not in filename:
-            ext = video_file.filename.split('.')[-1] if '.' in video_file.filename else 'mp4'
-            import uuid
-            filename = f"video_{uuid.uuid4().hex}.{ext}"
+        ext = video_file.filename.split('.')[-1] if '.' in video_file.filename else 'mp4'
+        ext = secure_filename(ext) or 'mp4'
+        import uuid
+        filename = f"video_{uuid.uuid4().hex}.{ext}"
 
         # If Cloudinary is configured, upload to Cloudinary
         if current_app.config.get('CLOUDINARY_URL'):
