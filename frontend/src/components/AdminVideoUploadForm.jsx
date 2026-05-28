@@ -61,7 +61,16 @@ export default function AdminVideoUploadForm() {
         });
       }
       
-      const result = await response.json();
+      let result;
+      const responseText = await response.text();
+      try {
+        result = JSON.parse(responseText);
+      } catch {
+        setMessage(`Server Error (Status ${response.status}): ${responseText.substring(0, 150)}...`);
+        setLoading(false);
+        return;
+      }
+      
       if (response.ok) {
         setSuccess(true);
         setMessage(uploadMode === 'file' ? '✨ Video uploaded successfully!' : '✨ Video link added successfully!');
@@ -74,7 +83,7 @@ export default function AdminVideoUploadForm() {
       }
     } catch (err) {
       console.error(err);
-      setMessage('A network error occurred. Please try again.');
+      setMessage(`A network error occurred: ${err.message || 'Please try again.'}`);
     } finally {
       setLoading(false);
     }

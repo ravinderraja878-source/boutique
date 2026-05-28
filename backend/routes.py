@@ -228,11 +228,16 @@ def upload_video():
     if claims.get('role') != 'admin':
         return jsonify({"error": "Admin privileges required"}), 403
 
-    title = request.form.get('title') or (request.json.get('title') if request.is_json else None)
+    if request.is_json:
+        data = request.get_json() or {}
+        title = data.get('title')
+        video_url = data.get('video_url')
+    else:
+        title = request.form.get('title')
+        video_url = request.form.get('video_url')
+
     if not title:
         return jsonify({"error": "Missing video title"}), 400
-
-    video_url = request.form.get('video_url') or (request.json.get('video_url') if request.is_json else None)
 
     if not video_url:
         if 'video' not in request.files:
