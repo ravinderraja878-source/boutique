@@ -4,7 +4,8 @@ class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'super-secret-key-change-me'
     # Handle Vercel/Heroku postgres:// vs postgresql:// compatibility
     # and use /tmp/boutique.db as fallback on Vercel to avoid read-only filesystem crash
-    _db_url = os.environ.get('DATABASE_URL')
+    # Look for database URLs in order of preference (direct non-pooling URL is preferred for SQLAlchemy)
+    _db_url = os.environ.get('POSTGRES_URL_NON_POOLING') or os.environ.get('DATABASE_URL') or os.environ.get('POSTGRES_URL')
     if _db_url:
         if _db_url.startswith("postgres://"):
             _db_url = _db_url.replace("postgres://", "postgresql://", 1)
