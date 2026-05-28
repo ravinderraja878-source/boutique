@@ -73,9 +73,20 @@ def upload_product():
         ext = image.filename.split('.')[-1] if '.' in image.filename else 'jpg'
         import uuid
         filename = f"image_{uuid.uuid4().hex}.{ext}"
-    upload_path = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
-    os.makedirs(current_app.config['UPLOAD_FOLDER'], exist_ok=True)
-    image.save(upload_path)
+
+    # If Cloudinary is configured, upload to Cloudinary
+    if current_app.config.get('CLOUDINARY_URL'):
+        try:
+            import cloudinary.uploader
+            upload_result = cloudinary.uploader.upload(image)
+            image_url = upload_result.get('secure_url')
+        except Exception as e:
+            return jsonify({"error": f"Failed to upload image to Cloudinary: {str(e)}"}), 500
+    else:
+        upload_path = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
+        os.makedirs(current_app.config['UPLOAD_FOLDER'], exist_ok=True)
+        image.save(upload_path)
+        image_url = f"/uploads/{filename}"
     
     new_product = Product(
         name=name,
@@ -83,7 +94,7 @@ def upload_product():
         price=float(price),
         sizes=sizes,
         description=description,
-        image_url=f"/uploads/{filename}"
+        image_url=image_url
     )
     
     db.session.add(new_product)
@@ -102,7 +113,7 @@ def delete_product(product_id):
     if not product:
         return jsonify({"error": "Product not found"}), 404
         
-    if product.image_url:
+    if product.image_url and not product.image_url.startswith('http'):
         filename = os.path.basename(product.image_url)
         image_path = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
         if os.path.exists(image_path):
@@ -217,30 +228,43 @@ def upload_video():
     if claims.get('role') != 'admin':
         return jsonify({"error": "Admin privileges required"}), 403
 
-    if 'video' not in request.files:
-        return jsonify({"error": "No video provided"}), 400
-        
-    video_file = request.files['video']
-    if video_file.filename == '':
-        return jsonify({"error": "Empty filename"}), 400
-        
-    title = request.form.get('title')
-    
+    title = request.form.get('title') or (request.json.get('title') if request.is_json else None)
     if not title:
         return jsonify({"error": "Missing video title"}), 400
-        
-    filename = secure_filename(video_file.filename)
-    if not filename or '.' not in filename:
-        ext = video_file.filename.split('.')[-1] if '.' in video_file.filename else 'mp4'
-        import uuid
-        filename = f"video_{uuid.uuid4().hex}.{ext}"
-    upload_path = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
-    os.makedirs(current_app.config['UPLOAD_FOLDER'], exist_ok=True)
-    video_file.save(upload_path)
+
+    video_url = request.form.get('video_url') or (request.json.get('video_url') if request.is_json else None)
+
+    if not video_url:
+        if 'video' not in request.files:
+            return jsonify({"error": "No video file or URL provided"}), 400
+            
+        video_file = request.files['video']
+        if video_file.filename == '':
+            return jsonify({"error": "Empty filename"}), 400
+            
+        filename = secure_filename(video_file.filename)
+        if not filename or '.' not in filename:
+            ext = video_file.filename.split('.')[-1] if '.' in video_file.filename else 'mp4'
+            import uuid
+            filename = f"video_{uuid.uuid4().hex}.{ext}"
+
+        # If Cloudinary is configured, upload to Cloudinary
+        if current_app.config.get('CLOUDINARY_URL'):
+            try:
+                import cloudinary.uploader
+                upload_result = cloudinary.uploader.upload(video_file, resource_type="video")
+                video_url = upload_result.get('secure_url')
+            except Exception as e:
+                return jsonify({"error": f"Failed to upload video to Cloudinary: {str(e)}"}), 500
+        else:
+            upload_path = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
+            os.makedirs(current_app.config['UPLOAD_FOLDER'], exist_ok=True)
+            video_file.save(upload_path)
+            video_url = f"/uploads/{filename}"
     
     new_video = Video(
         title=title,
-        video_url=f"/uploads/{filename}"
+        video_url=video_url
     )
     
     db.session.add(new_video)
@@ -259,7 +283,7 @@ def delete_video(video_id):
     if not video:
         return jsonify({"error": "Video not found"}), 404
         
-    if video.video_url:
+    if video.video_url and not video.video_url.startswith('http'):
         filename = os.path.basename(video.video_url)
         video_path = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
         if os.path.exists(video_path):

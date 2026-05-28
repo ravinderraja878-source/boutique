@@ -23,3 +23,4 @@ class Config:
         _upload_folder = '/tmp/uploads'
     UPLOAD_FOLDER = _upload_folder
     MAX_CONTENT_LENGTH = 500 * 1024 * 1024  # 500 MB max upload size
+    CLOUDINARY_URL = os.environ.get('CLOUDINARY_URL')

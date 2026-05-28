@@ -73,7 +73,7 @@ const Shop = () => {
             transition={{ duration: 0.5, delay: index * 0.1 }}
           >
             <div className="product-image-container">
-              <img src={`/api${product.image_url}`} alt={product.name} className="product-image" />
+              <img src={product.image_url.startsWith('http') ? product.image_url : `/api${product.image_url}`} alt={product.name} className="product-image" />
             </div>
             <div className="product-info">
               <h3>{product.name}</h3>
